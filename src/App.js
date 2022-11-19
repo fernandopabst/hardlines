@@ -1,7 +1,10 @@
 import { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, extend } from "@react-three/fiber";
 import { OrbitControls, Loader } from "@react-three/drei";
 import Scene from "./Scene";
+import { RenderPixelatedPass } from "three-stdlib";
+
+extend({ RenderPixelatedPass });
 
 export default function App() {
   return (

@@ -1,14 +1,25 @@
 import useSpline from "@splinetool/r3f-spline";
-import { OrthographicCamera, Center, Float } from "@react-three/drei";
+import { OrthographicCamera, Center, Float, Effects } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import Back from "./Back";
+import * as THREE from "three";
+import { useMemo } from "react";
 
 export default function Scene({ ...props }) {
   const { nodes, materials } = useSpline(
     "https://prod.spline.design/nSIxqhxKRLMgTVMK/scene.splinecode"
   );
+  const { size, scene, camera } = useThree();
+  const resolution = useMemo(
+    () => new THREE.Vector2(size.width, size.height),
+    [size]
+  );
 
   return (
     <>
+      <Effects>
+        <renderPixelatedPass args={[resolution, 4, scene, camera]} />
+      </Effects>
       <Back />
       <color attach="background" args={["#787a7d"]} />
       <Center>
