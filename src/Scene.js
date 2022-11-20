@@ -1,11 +1,16 @@
 import useSpline from "@splinetool/r3f-spline";
 import { OrthographicCamera, Center, Float, Effects } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
-import Back from "./Back";
+import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useMemo } from "react";
+import { useMemo, useContext, useEffect } from "react";
+import { useSnapshot } from "valtio";
+import { MyContext } from "./App";
+import { AsciiEffect } from "three-stdlib";
+import Back from "./Back";
 
 export default function Scene({ ...props }) {
+  const state = useContext(MyContext);
+  const snap = useSnapshot(state);
   const { nodes, materials } = useSpline(
     "https://prod.spline.design/nSIxqhxKRLMgTVMK/scene.splinecode"
   );
@@ -17,14 +22,25 @@ export default function Scene({ ...props }) {
 
   return (
     <>
-      <Effects>
-        <renderPixelatedPass args={[resolution, 4, scene, camera]} />
-      </Effects>
-      <Back />
-      <color attach="background" args={["#787a7d"]} />
+      {snap.ascii ? (
+        <AsciiRenderer invert />
+      ) : (
+        <>
+          <Effects>
+            <renderPixelatedPass
+              args={[resolution, snap.pixels, scene, camera]}
+            />
+          </Effects>
+          <color attach="background" args={["#787a7d"]} />
+        </>
+      )}
+
+      {!snap.ascii && <Back />}
       <Center>
         <Float>
           <group
+            onPointerDown={() => (state.ascii = true)}
+            onPointerUp={() => (state.ascii = false)}
             name="hardlines"
             position={[134.17, 223.1, 186.87]}
             scale={[3.35, 3.46, 3.35]}
@@ -206,4 +222,43 @@ export default function Scene({ ...props }) {
       </Center>
     </>
   );
+}
+
+function AsciiRenderer({
+  renderIndex = 1,
+  characters = "hard inesHARDLINES",
+  ...options
+}) {
+  // Reactive state
+  const { size, gl, scene, camera } = useThree();
+
+  // Create effect
+  const effect = useMemo(() => {
+    const effect = new AsciiEffect(gl, characters, options);
+    effect.domElement.style.position = "absolute";
+    effect.domElement.style.top = "0px";
+    effect.domElement.style.left = "0px";
+    effect.domElement.style.color = "white";
+    effect.domElement.style.backgroundColor = "black";
+    effect.domElement.style.pointerEvents = "none";
+    return effect;
+  }, [characters, options.invert]);
+
+  // Append on mount, remove on unmount
+  useEffect(() => {
+    gl.domElement.parentNode.appendChild(effect.domElement);
+    return () => gl.domElement.parentNode.removeChild(effect.domElement);
+  }, [effect]);
+
+  // Set size
+  useEffect(() => {
+    effect.setSize(size.width, size.height);
+  }, [effect, size]);
+
+  // Take over render-loop (that is what the index is for)
+  useFrame((state) => {
+    effect.render(scene, camera);
+  }, renderIndex);
+
+  // This component returns nothing, it has no view, it is a purely logical
 }
